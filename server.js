@@ -20,11 +20,11 @@ app.post('/webhook', (req, res) => {
     const perguntaHorario = agent.parameters['pergunta-horario'];
 
     if (data) {
-      agent.add(`Claro! Podemos agendar sua retirada. Nosso horário de atendimento é ${horarioAtendimento}. Fica bom para você?`);
+      agent.add(`RESPOSTA AUTOMÁTICA:\n\nNosso horário de atendimento é ${horarioAtendimento}`);
     } else if (perguntaHorario) {
-      agent.add(`Nosso horário para retirada é ${horarioAtendimento}.`);
+      agent.add(`ESPOSTA AUTOMÁTICA:\n\nEstamos abertos ${horarioAtendimento}.`);
     } else {
-      agent.add(`Para retiradas, nosso horário de funcionamento é ${horarioAtendimento}. Gostaria de agendar um horário?`);
+      agent.add(`ESPOSTA AUTOMÁTICA:\n\nNosso horário de atendimento é ${horarioAtendimento}`);
     }
   }
 
