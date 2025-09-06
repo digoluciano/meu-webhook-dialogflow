@@ -83,15 +83,25 @@ app.post('/webhook', (req, res) => {
     // O contexto `aguardando_cpf` é configurado diretamente no Dialogflow
   }
 
-  // Função para a intent `faturas.receber_cpf`
+  // Função para a intent `faturas.receber_cpf` (COM VALIDAÇÃO)
   async function faturasReceberCpf(agent) {
-    const cpf = agent.parameters.number;
+    const rawInput = agent.query; // Pega o texto bruto que o cliente digitou
     const prefixo = 'RESPOSTA AUTOMÁTICA:\n\n';
+
+    // Remove todos os caracteres que não são números
+    const cpfCnpjLimpo = rawInput.replace(/\D/g, '');
+
+    // Validação: Verifica se o número limpo tem o tamanho de um CPF (11) ou CNPJ (14)
+    if (cpfCnpjLimpo.length !== 11 && cpfCnpjLimpo.length !== 14) {
+      agent.add(prefixo + 'O CPF ou CNPJ parece inválido. Por favor, digite apenas os números, sem pontos ou traços.');
+      // Mantém o contexto `aguardando_cpf` ativo para que o cliente possa tentar novamente.
+      return;
+    }
     
     try {
-        // Chama a sua API para buscar as faturas
+        // Chama a sua API para buscar as faturas com o número já limpo
         const response = await axios.post(`${faturaApiConfig.baseUrl}/api_faturas.php`, 
-            { cpf: cpf },
+            { cpf: cpfCnpjLimpo },
             { headers: { 'X-API-Key': faturaApiConfig.apiKey } }
         );
 
@@ -109,7 +119,7 @@ app.post('/webhook', (req, res) => {
                 name: 'aguardando_selecao_fatura',
                 lifespan: 5, // O contexto dura 5 minutos
                 parameters: {
-                    cpf: cpf,
+                    cpf: cpfCnpjLimpo,
                     faturasEncontradas: faturas
                 }
             });
