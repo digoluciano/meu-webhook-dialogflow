@@ -97,7 +97,7 @@ app.post('/webhook', (req, res) => {
 
         const faturas = response.data;
 
-        if (faturas && faturas.length > 0) {
+        if (faturas && Array.isArray(faturas) && faturas.length > 0) {
             let resposta = 'Encontrei as seguintes faturas em aberto:\n\n';
             faturas.forEach((fatura, index) => {
                 resposta += `${index + 1}. Vencimento: ${fatura.data_vencimento} - Valor: R$ ${fatura.valor}\n`;
@@ -119,7 +119,7 @@ app.post('/webhook', (req, res) => {
             // Mantém o contexto `aguardando_cpf` para que o utilizador possa tentar novamente
         }
     } catch (error) {
-        console.error('Erro ao chamar a API de faturas:', error);
+        console.error('Erro ao chamar a API de faturas:', error.response ? error.response.data : error.message);
         agent.add(prefixo + 'Ocorreu um erro ao consultar as suas faturas. Por favor, tente novamente mais tarde.');
     }
   }
@@ -143,18 +143,28 @@ app.post('/webhook', (req, res) => {
     const faturaEscolhida = faturas[numeroSelecionado - 1];
 
     try {
-        // Chama a sua API para enviar a fatura
-        await axios.post(`${faturaApiConfig.baseUrl}/api_enviar_fatura.php`, 
+        // Chama a sua API para obter os links de pagamento
+        const response = await axios.post(`${faturaApiConfig.baseUrl}/api_enviar_fatura.php`, 
             { id_fatura: faturaEscolhida.id_fatura },
             { headers: { 'X-API-Key': faturaApiConfig.apiKey } }
         );
 
-        agent.add(prefixo + 'Perfeito! O pedido para enviar a sua fatura foi processado. Em breve, você receberá a cobrança com as opções de pagamento.');
+        const { link_pix, link_boleto } = response.data;
+        let respostaFinal = "Perfeito! O seu pedido foi processado. Escolha a sua forma de pagamento preferida:\n";
+
+        if (link_pix) {
+            respostaFinal += `\n💳 Pagar com PIX:\n${link_pix}\n`;
+        }
+        if (link_boleto) {
+            respostaFinal += `\n📄 Pagar com Boleto:\n${link_boleto}\n`;
+        }
+
+        agent.add(prefixo + respostaFinal);
         // Limpa o contexto, pois a conversa terminou
         agent.context.delete('aguardando_selecao_fatura');
 
     } catch (error) {
-        console.error('Erro ao chamar a API de envio de fatura:', error);
+        console.error('Erro ao chamar a API de envio de fatura:', error.response ? error.response.data : error.message);
         agent.add(prefixo + 'Ocorreu um erro ao tentar enviar a sua fatura. Por favor, tente novamente mais tarde.');
     }
   }
@@ -172,6 +182,11 @@ app.post('/webhook', (req, res) => {
   intentMap.set('faturas.selecionar_numero', faturasSelecionarNumero);
 
   agent.handleRequest(intentMap);
+});
+
+// --- Rota para o UptimeRobot (Manter o Servidor Acordado) ---
+app.get('/', (req, res) => {
+    res.send('Webhook está vivo e a funcionar!');
 });
 
 // O Render lida com a porta automaticamente
