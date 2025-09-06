@@ -83,13 +83,21 @@ app.post('/webhook', (req, res) => {
     // O contexto `aguardando_cpf` é configurado diretamente no Dialogflow
   }
 
-  // Função para a intent `faturas.receber_cpf` (COM VALIDAÇÃO)
+  // Função para a intent `faturas.receber_cpf` (COM VALIDAÇÃO E DEPURAÇÃO)
   async function faturasReceberCpf(agent) {
     const rawInput = agent.query; // Pega o texto bruto que o cliente digitou
     const prefixo = 'RESPOSTA AUTOMÁTICA:\n\n';
 
+    // --- INÍCIO DA DEPURAÇÃO ---
+    console.log(`[DEBUG] Texto bruto recebido do cliente: "${rawInput}"`);
+    // --- FIM DA DEPURAÇÃO ---
+
     // Remove todos os caracteres que não são números
     const cpfCnpjLimpo = rawInput.replace(/\D/g, '');
+    
+    // --- INÍCIO DA DEPURAÇÃO ---
+    console.log(`[DEBUG] CPF/CNPJ limpo para a consulta: "${cpfCnpjLimpo}"`);
+    // --- FIM DA DEPURAÇÃO ---
 
     // Validação: Verifica se o número limpo tem o tamanho de um CPF (11) ou CNPJ (14)
     if (cpfCnpjLimpo.length !== 11 && cpfCnpjLimpo.length !== 14) {
@@ -104,6 +112,10 @@ app.post('/webhook', (req, res) => {
             { cpf: cpfCnpjLimpo },
             { headers: { 'X-API-Key': faturaApiConfig.apiKey } }
         );
+        
+        // --- INÍCIO DA DEPURAÇÃO ---
+        console.log('[DEBUG] Resposta recebida da API de faturas:', JSON.stringify(response.data, null, 2));
+        // --- FIM DA DEPURAÇÃO ---
 
         const faturas = response.data;
 
