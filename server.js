@@ -1,3 +1,4 @@
+
 'use strict';
 
 const { WebhookClient } = require('dialogflow-fulfillment');
@@ -23,7 +24,7 @@ const servicoMap = {
 
 // --- Configurações para as suas APIs ---
 const apiConfig = {
-    baseUrl: 'https://sistema.ecosinformatica.com.br/sistema/api/faturas', // Pasta base das suas APIs
+    baseUrl: 'https://sistema.ecosinformatica.com.br/sistema/api/', // Pasta base das suas APIs
     apiKey: 'XoPz09W+7cQYbuvFMEzZ9GNkLaVmoiW0ArfXlhX7dd8=' // A sua chave secreta
 };
 
@@ -90,7 +91,7 @@ app.post('/webhook', (req, res) => {
     }
     
     try {
-        const response = await axios.post(`${apiConfig.baseUrl}/api_faturas.php`, 
+        const response = await axios.post(`${apiConfig.baseUrl}/faturas/api_faturas.php`, 
             { cpf: cpfCnpjLimpo },
             { headers: { 'X-API-Key': apiConfig.apiKey } }
         );
@@ -134,7 +135,7 @@ app.post('/webhook', (req, res) => {
     const faturaEscolhida = faturas[numeroSelecionado - 1];
 
     try {
-        const response = await axios.post(`${apiConfig.baseUrl}/api_enviar_fatura.php`, 
+        const response = await axios.post(`${apiConfig.baseUrl}/faturas/api_enviar_fatura.php`, 
             { id_fatura: faturaEscolhida.id_fatura },
             { headers: { 'X-API-Key': apiConfig.apiKey } }
         );
@@ -174,7 +175,7 @@ app.post('/webhook', (req, res) => {
     const termoParaApi = tamanhoFoto || agent.query;
 
     try {
-        const response = await axios.post(`${apiConfig.baseUrl}/api_produtos.php`, 
+        const response = await axios.post(`${apiConfig.baseUrl}/produtos/api_produtos.php`, 
             { termo_busca: termoParaApi },
             { headers: { 'X-API-Key': apiConfig.apiKey } }
         );
