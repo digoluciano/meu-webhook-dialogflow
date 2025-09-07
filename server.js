@@ -189,7 +189,7 @@ app.post('/webhook', (req, res) => {
     }
 
     try {
-        const response = await axios.post(`${apiConfig.baseUrl}faturas/api_produtos.php`, 
+        const response = await axios.post(`${apiConfig.baseUrl}produtos/api_produtos.php`, 
             { termo_busca: termoParaApi },
             { headers: { 'X-API-Key': apiConfig.apiKey } }
         );
