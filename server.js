@@ -2,13 +2,13 @@
 
 const { WebhookClient } = require('dialogflow-fulfillment');
 const express = require('express');
-const axios = require('axios'); // Nova biblioteca para fazer chamadas à sua API
+const axios = require('axios');
 
 // Cria o servidor web
 const app = express();
 app.use(express.json());
 
-// --- Mapa para formatar os nomes dos serviços (Mantido) ---
+// --- Mapa para formatar os nomes dos serviços ---
 const servicoMap = {
   impressao: 'impressão',
   digitalizacao: 'digitalização',
@@ -21,10 +21,10 @@ const servicoMap = {
   foto: 'foto'
 };
 
-// --- Configurações para a sua API (coloque a sua chave aqui) ---
-const faturaApiConfig = {
-    baseUrl: 'https://sistema.ecosinformatica.com.br/sistema/api/faturas',
-    apiKey: 'XoPz09W+7cQYbuvFMEzZ9GNkLaVmoiW0ArfXlhX7dd8=' // **IMPORTANTE**: Use a mesma chave secreta da sua API PHP
+// --- Configurações para as suas APIs ---
+const apiConfig = {
+    baseUrl: 'https://sistema.ecosinformatica.com.br/sistema/api/faturas', // Pasta base das suas APIs
+    apiKey: 'XoPz09W+7cQYbuvFMEzZ9GNkLaVmoiW0ArfXlhX7dd8=' // A sua chave secreta
 };
 
 
@@ -32,7 +32,7 @@ const faturaApiConfig = {
 app.post('/webhook', (req, res) => {
   const agent = new WebhookClient({ request: req, response: res });
 
-  // --- FUNÇÕES EXISTENTES (Mantidas e com o prefixo "RESPOSTA AUTOMÁTICA") ---
+  // --- FUNÇÕES EXISTENTES ---
 
   function agendamentoRetirada(agent) {
     const horarioAtendimento = 'de Segunda a Sexta, das 8h às 12h e das 13h às 18h, e aos Sábados das 8h às 12h';
@@ -75,48 +75,26 @@ app.post('/webhook', (req, res) => {
     }
   }
 
-  // --- NOVAS FUNÇÕES PARA O FLUXO DE FATURAS ---
-
-  // Função para a intent `faturas.iniciar`
   function faturasIniciar(agent) {
     agent.add('RESPOSTA AUTOMÁTICA:\n\nClaro! Para que eu possa encontrar as suas faturas, por favor, digite o seu CPF ou CNPJ.');
-    // O contexto `aguardando_cpf` é configurado diretamente no Dialogflow
   }
 
-  // Função para a intent `faturas.receber_cpf` (COM VALIDAÇÃO E DEPURAÇÃO)
   async function faturasReceberCpf(agent) {
-    const rawInput = agent.query; // Pega o texto bruto que o cliente digitou
+    const rawInput = agent.query;
     const prefixo = 'RESPOSTA AUTOMÁTICA:\n\n';
-
-    // --- INÍCIO DA DEPURAÇÃO ---
-    console.log(`[DEBUG] Texto bruto recebido do cliente: "${rawInput}"`);
-    // --- FIM DA DEPURAÇÃO ---
-
-    // Remove todos os caracteres que não são números
     const cpfCnpjLimpo = rawInput.replace(/\D/g, '');
-    
-    // --- INÍCIO DA DEPURAÇÃO ---
-    console.log(`[DEBUG] CPF/CNPJ limpo para a consulta: "${cpfCnpjLimpo}"`);
-    // --- FIM DA DEPURAÇÃO ---
 
-    // Validação: Verifica se o número limpo tem o tamanho de um CPF (11) ou CNPJ (14)
     if (cpfCnpjLimpo.length !== 11 && cpfCnpjLimpo.length !== 14) {
       agent.add(prefixo + 'O CPF ou CNPJ parece inválido. Por favor, digite apenas os números, sem pontos ou traços.');
-      // Mantém o contexto `aguardando_cpf` ativo para que o cliente possa tentar novamente.
       return;
     }
     
     try {
-        // Chama a sua API para buscar as faturas com o número já limpo
-        const response = await axios.post(`${faturaApiConfig.baseUrl}/api_faturas.php`, 
+        const response = await axios.post(`${apiConfig.baseUrl}/api_faturas.php`, 
             { cpf: cpfCnpjLimpo },
-            { headers: { 'X-API-Key': faturaApiConfig.apiKey } }
+            { headers: { 'X-API-Key': apiConfig.apiKey } }
         );
         
-        // --- INÍCIO DA DEPURAÇÃO ---
-        console.log('[DEBUG] Resposta recebida da API de faturas:', JSON.stringify(response.data, null, 2));
-        // --- FIM DA DEPURAÇÃO ---
-
         const faturas = response.data;
 
         if (faturas && Array.isArray(faturas) && faturas.length > 0) {
@@ -126,19 +104,14 @@ app.post('/webhook', (req, res) => {
             });
             resposta += '\nPor favor, digite o número da fatura que deseja receber.';
 
-            // Define o contexto de saída com os dados para o próximo passo
             agent.context.set({
                 name: 'aguardando_selecao_fatura',
-                lifespan: 5, // O contexto dura 5 minutos
-                parameters: {
-                    cpf: cpfCnpjLimpo,
-                    faturasEncontradas: faturas
-                }
+                lifespan: 5,
+                parameters: { cpf: cpfCnpjLimpo, faturasEncontradas: faturas }
             });
             agent.add(prefixo + resposta);
         } else {
             agent.add(prefixo + 'Não encontrei faturas em aberto para o CPF informado. Gostaria de tentar com outro número?');
-            // Mantém o contexto `aguardando_cpf` para que o utilizador possa tentar novamente
         }
     } catch (error) {
         console.error('Erro ao chamar a API de faturas:', error.response ? error.response.data : error.message);
@@ -146,18 +119,14 @@ app.post('/webhook', (req, res) => {
     }
   }
 
-  // Função para a intent `faturas.selecionar_numero`
   async function faturasSelecionarNumero(agent) {
     const numeroSelecionado = agent.parameters.number;
     const prefixo = 'RESPOSTA AUTOMÁTICA:\n\n';
-
-    // Recupera os dados guardados no contexto
     const contexto = agent.context.get('aguardando_selecao_fatura');
     const faturas = contexto.parameters.faturasEncontradas;
 
     if (!faturas || numeroSelecionado < 1 || numeroSelecionado > faturas.length) {
         agent.add(prefixo + 'Número inválido. Por favor, digite um dos números da lista que enviei.');
-        // Mantém o contexto para que o utilizador possa tentar novamente
         agent.context.set(contexto);
         return;
     }
@@ -165,10 +134,9 @@ app.post('/webhook', (req, res) => {
     const faturaEscolhida = faturas[numeroSelecionado - 1];
 
     try {
-        // Chama a sua API para obter os links de pagamento
-        const response = await axios.post(`${faturaApiConfig.baseUrl}/api_enviar_fatura.php`, 
+        const response = await axios.post(`${apiConfig.baseUrl}/api_enviar_fatura.php`, 
             { id_fatura: faturaEscolhida.id_fatura },
-            { headers: { 'X-API-Key': faturaApiConfig.apiKey } }
+            { headers: { 'X-API-Key': apiConfig.apiKey } }
         );
 
         const { link_pix, link_boleto } = response.data;
@@ -182,12 +150,49 @@ app.post('/webhook', (req, res) => {
         }
 
         agent.add(prefixo + respostaFinal);
-        // Limpa o contexto, pois a conversa terminou
         agent.context.delete('aguardando_selecao_fatura');
 
     } catch (error) {
         console.error('Erro ao chamar a API de envio de fatura:', error.response ? error.response.data : error.message);
         agent.add(prefixo + 'Ocorreu um erro ao tentar enviar a sua fatura. Por favor, tente novamente mais tarde.');
+    }
+  }
+
+  // --- NOVA FUNÇÃO PARA CONSULTA DE PREÇOS ---
+  async function produtosConsultarPreco(agent) {
+    const prefixo = 'RESPOSTA AUTOMÁTICA:\n\n';
+    const tamanhoFoto = agent.parameters.TamanhoFoto;
+    const consultaGenerica = agent.query.toLowerCase();
+
+    // Se a pergunta for muito genérica, pede mais detalhes.
+    if (!tamanhoFoto && (consultaGenerica.includes('preço da foto') || consultaGenerica.includes('valor da foto'))) {
+        agent.add(prefixo + 'Claro! Temos vários tamanhos. Qual tamanho você gostaria de saber o preço? (ex: 10x15, 15x21)');
+        return;
+    }
+
+    // Usa o tamanho específico, se houver. Senão, usa a própria pergunta do cliente como termo de busca.
+    const termoParaApi = tamanhoFoto || agent.query;
+
+    try {
+        const response = await axios.post(`${apiConfig.baseUrl}/api_produtos.php`, 
+            { termo_busca: termoParaApi },
+            { headers: { 'X-API-Key': apiConfig.apiKey } }
+        );
+
+        const produtos = response.data;
+
+        if (produtos && Array.isArray(produtos) && produtos.length > 0) {
+            let resposta = 'Encontrei os seguintes preços:\n\n';
+            produtos.forEach(produto => {
+                resposta += `- ${produto.descricao}: R$ ${produto.preco}\n`;
+            });
+            agent.add(prefixo + resposta);
+        } else {
+            agent.add(prefixo + `Não encontrei um preço para "${termoParaApi}". Por favor, poderia especificar o tamanho, como "foto 10x15"?`);
+        }
+    } catch (error) {
+        console.error('Erro ao chamar a API de produtos:', error.response ? error.response.data : error.message);
+        agent.add(prefixo + 'Ocorreu um erro ao consultar os preços. Por favor, tente novamente mais tarde.');
     }
   }
 
@@ -197,16 +202,15 @@ app.post('/webhook', (req, res) => {
   intentMap.set('agendamento.retirada', agendamentoRetirada);
   intentMap.set('saudacao', saudacao);
   intentMap.set('servicos.documentos', servicosDocumentos);
-  
-  // --- NOVAS INTENTS DE FATURAS ADICIONADAS ---
   intentMap.set('faturas.iniciar', faturasIniciar);
   intentMap.set('faturas.receber_cpf', faturasReceberCpf);
   intentMap.set('faturas.selecionar_numero', faturasSelecionarNumero);
+  intentMap.set('produtos.consultar_preco', produtosConsultarPreco); // <-- NOVA HABILIDADE ADICIONADA
 
   agent.handleRequest(intentMap);
 });
 
-// --- Rota para o UptimeRobot (Manter o Servidor Acordado) ---
+// Rota para o UptimeRobot (Manter o Servidor Acordado)
 app.get('/', (req, res) => {
     res.send('Webhook está vivo e a funcionar!');
 });
