@@ -161,20 +161,34 @@ app.post('/webhook', (req, res) => {
     }
   }
 
+  // --- FUNÇÃO DE CONSULTA DE PREÇOS (ATUALIZADA) ---
   async function produtosConsultarPreco(agent) {
     const prefixo = 'RESPOSTA AUTOMÁTICA:\n\n';
     const tamanhoFoto = agent.parameters.TamanhoFoto;
-    const consultaGenerica = agent.query.toLowerCase();
+    const userQuery = agent.query.toLowerCase();
 
-    if (!tamanhoFoto && (consultaGenerica.includes('preço da foto') || consultaGenerica.includes('valor da foto'))) {
-        agent.add(prefixo + 'Claro! Temos vários tamanhos. Qual tamanho você gostaria de saber o preço? (ex: 10x15, 15x21)');
+    let termoParaApi = '';
+
+    // 1. Prioridade máxima: tamanho específico da entidade @TamanhoFoto
+    if (tamanhoFoto) {
+        termoParaApi = tamanhoFoto;
+    } 
+    // 2. Se não, procurar por palavras-chave mais específicas como "revelação"
+    else if (userQuery.includes('revelação') || userQuery.includes('revelacao')) {
+        termoParaApi = 'revelacao'; // Busca por todos os produtos de revelação
+    }
+    // 3. Se não, tratar perguntas genéricas sobre "foto"
+    else if (userQuery.includes('foto') || userQuery.includes('fotos')) {
+        // Se a pergunta é muito genérica, pede para especificar o tamanho.
+        agent.add(prefixo + 'Claro! Temos vários tamanhos de foto. Qual tamanho você gostaria de saber o preço? (ex: 10x15, 15x21)');
         return;
     }
-
-    const termoParaApi = tamanhoFoto || agent.query;
+    // 4. Fallback: se nenhuma das condições acima for atendida, usa a pergunta inteira
+    else {
+        termoParaApi = agent.query;
+    }
 
     try {
-        // --- CHAMADA À API CORRIGIDA ---
         const response = await axios.post(`${apiConfig.baseUrl}faturas/api_produtos.php`, 
             { termo_busca: termoParaApi },
             { headers: { 'X-API-Key': apiConfig.apiKey } }
@@ -221,3 +235,4 @@ const port = process.env.PORT || 3000;
 app.listen(port, () => {
   console.log(`Webhook rodando na porta ${port}`);
 });
+
