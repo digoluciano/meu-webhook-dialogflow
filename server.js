@@ -203,7 +203,7 @@ app.post('/webhook', (req, res) => {
             });
             agent.add(prefixo + resposta);
         } else {
-            agent.add(prefixo + `Não encontrei um preço para "${termoParaApi}". Por favor, poderia especificar o tamanho, como "foto 10x15"?`);
+            agent.add(prefixo + `Poderia especificar o tamanho, como "foto 10x15"?`);
         }
     } catch (error) {
         console.error('[DEBUG] Erro ao chamar a API de produtos:', error.response ? error.response.data : error.message);
