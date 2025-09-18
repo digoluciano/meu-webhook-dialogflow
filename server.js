@@ -36,20 +36,19 @@ app.post('/webhook', (req, res) => {
 
   function agendamentoRetirada(agent) {
     const horarioAtendimento = 'de Segunda a Sexta, das 8h às 12h e das 13h às 18h, e aos Sábados das 8h às 12h';
-    const prefixo = '*RESPOSTA AUTOMÁTICA*:\n\n';
+    const prefixo = 'RESPOSTA AUTOMÁTICA:\n\n';
     agent.add(`${prefixo}O nosso horário de atendimento é ${horarioAtendimento}`);
   }
 
-  // --- FUNÇÃO ATUALIZADA ---
-  // A responsabilidade de criar o contexto 'aguardando_cpf' foi movida para a própria intent.
   function faturasIniciar(agent) {
-    const prefixo = '*RESPOSTA AUTOMÁTICA*:\n\n';
-    agent.add(prefixo + 'Claro! Para que eu possa encontrar as suas faturas, por favor, digite o seu CPF ou CNPJ sem pontos ou traços.\n\nExemplo: 000.000.000-00 -> *00000000000*');
+    const prefixo = 'RESPOSTA AUTOMÁTICA:\n\n';
+    agent.add(prefixo + 'Claro! Para que eu possa encontrar as suas faturas, por favor, digite o seu CPF ou CNPJ.');
+    agent.context.set({ name: 'aguardando_cpf', lifespan: 5 });
   }
 
   async function faturasReceberCpf(agent) {
     const rawInput = agent.query;
-    const prefixo = '*RESPOSTA AUTOMÁTICA*:\n\n';
+    const prefixo = 'RESPOSTA AUTOMÁTICA:\n\n';
     const cpfCnpjLimpo = rawInput.replace(/\D/g, '');
 
     if (cpfCnpjLimpo.length !== 11 && cpfCnpjLimpo.length !== 14) {
@@ -69,10 +68,11 @@ app.post('/webhook', (req, res) => {
         if (faturas && Array.isArray(faturas) && faturas.length > 0) {
             let resposta = 'Encontrei as seguintes faturas em aberto:\n\n';
             faturas.forEach((fatura, index) => {
-                resposta += `*${index + 1}. Vencimento: ${fatura.data_vencimento} - Valor: R$ ${fatura.valor}*\n`;
+                resposta += `${index + 1}. Vencimento: ${fatura.data_vencimento} - Valor: R$ ${fatura.valor}\n`;
             });
             resposta += '\nPor favor, digite o número da fatura que deseja receber.';
             
+            // --- CORREÇÃO APLICADA AQUI ---
             // Limpa o contexto antigo antes de criar o novo
             agent.context.delete('aguardando_cpf');
             
@@ -93,7 +93,7 @@ app.post('/webhook', (req, res) => {
 
   async function faturasSelecionarNumero(agent) {
     const numeroSelecionado = parseInt(agent.query, 10);
-    const prefixo = '*RESPOSTA AUTOMÁTICA*:\n\n';
+    const prefixo = 'RESPOSTA AUTOMÁTICA:\n\n';
     const contexto = agent.context.get('aguardando_selecao_fatura');
     const faturas = contexto.parameters.faturasEncontradas;
 
@@ -127,7 +127,7 @@ app.post('/webhook', (req, res) => {
   }
 
   async function produtosConsultarPreco(agent) {
-    const prefixo = '*RESPOSTA AUTOMÁTICA*:\n\n';
+    const prefixo = 'RESPOSTA AUTOMÁTICA:\n\n';
     const tamanhoFoto = agent.parameters.TamanhoFoto;
     const userQuery = agent.query.toLowerCase();
 
@@ -160,29 +160,13 @@ app.post('/webhook', (req, res) => {
         agent.add(prefixo + 'Ocorreu um erro ao consultar os preços.');
     }
   }
-
-  function servicosImpressao(agent) {
-    const servicoRef = agent.parameters.TipoDeServicoDocumento;
-    const nomeServicoFormatado = servicoMap[servicoRef] || servicoRef;
-    const prefixo = '*RESPOSTA AUTOMÁTICA*:\n\n';
-    
-    agent.add(`${prefixo}Sim, nós oferecemos o serviço de "${nomeServicoFormatado}".\n\nValores das impressões monocromáticas\n\nPrimeira página - *R$ 1,50*\n2 a 100 páginas - *R$ 0,50* - Frente e verso *R$ 0,45*\n101 a 300 páginas - *R$ 0,40* - Frente e verso *R$ 0,35*\nAcima de 300 páginas - *R$ 0,30* - Frente e verso *R$ 0,25*\n\nValor da impressão colorida: *R$ 2,50*`);
-  }
-
+  
   function servicosDocumentos(agent) {
     const servicoRef = agent.parameters.TipoDeServicoDocumento;
     const nomeServicoFormatado = servicoMap[servicoRef] || servicoRef;
-    const prefixo = '*RESPOSTA AUTOMÁTICA*:\n\n';
+    const prefixo = 'RESPOSTA AUTOMÁTICA:\n\n';
     
     agent.add(`${prefixo}Sim, nós oferecemos o serviço de "${nomeServicoFormatado}". Para valores e prazos, por favor, envie mensagem para o número 48 99992-0920.`);
-  }
-  
-  function servicosFoto3x4(agent) {
-    const servicoRef = agent.parameters.TipoDeServicoDocumento;
-    const nomeServicoFormatado = servicoMap[servicoRef] || servicoRef;
-    const prefixo = '*RESPOSTA AUTOMÁTICA*:\n\n';
-    
-    agent.add(`${prefixo}Sim, nós oferecemos o serviço de "${nomeServicoFormatado}".\n\n4 fotos 3x4: *R$ 15,00*\n8 fotos 3x4: *R$ 20,00*\n\nA foto fica *pronta na hora*!\n\nLembramos que, caso seja para algum documento oficial, *NÃO* é recomendado o uso de camiseta branca`);
   }
 
   // Mapeia todas as intenções para as funções corretas
@@ -191,11 +175,9 @@ app.post('/webhook', (req, res) => {
   intentMap.set('menu.faturas', faturasIniciar);
   intentMap.set('menu.precos', produtosConsultarPreco);
   intentMap.set('menu.horario', agendamentoRetirada);
-  intentMap.set('servicos.impressao', servicosImpressao);
+  intentMap.set('servicos.impressao', servicosDocumentos);
   intentMap.set('servicos.fotocopia', servicosDocumentos);
   intentMap.set('servicos.digitalizacao', servicosDocumentos);
-  intentMap.set('servicos.plastificacao', servicosDocumentos);
-  intentMap.set('servicos.foto3x4', servicosFoto3x4);
   intentMap.set('faturas.receber_cpf', faturasReceberCpf);
   intentMap.set('faturas.selecionar_numero', faturasSelecionarNumero);
   
