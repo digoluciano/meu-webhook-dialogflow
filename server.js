@@ -195,7 +195,7 @@ app.post('/webhook', (req, res) => {
   intentMap.set('servicos.impressao', servicosImpressao);
   intentMap.set('servicos.fotocopia', servicosDocumentos);
   intentMap.set('servicos.digitalizacao', servicosDocumentos);
-  intentMap.set('servicos.pastificacao', servicosDocumentos);
+  intentMap.set('servicos.plastificacao', servicosDocumentos);
   intentMap.set('servicos.foto3x4', servicosFoto3x4);
   intentMap.set('faturas.receber_cpf', faturasReceberCpf);
   intentMap.set('faturas.selecionar_numero', faturasSelecionarNumero);
