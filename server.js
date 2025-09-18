@@ -182,7 +182,7 @@ app.post('/webhook', (req, res) => {
     const nomeServicoFormatado = servicoMap[servicoRef] || servicoRef;
     const prefixo = '*RESPOSTA AUTOMÁTICA*:\n\n';
     
-    agent.add(`${prefixo}Sim, nós oferecemos o serviço de "${nomeServicoFormatado}".\n\nValores:\n4 fotos 3x4: *R$ 15,00*\n8 fotos 3x4: *R$ 20,00*\n\nA foto fica pronta na hora!\n\nLembramos que, caso seja para algum documento oficial, NÃO é recomendado o uso de camiseta branca`);
+    agent.add(`${prefixo}Sim, nós oferecemos o serviço de "${nomeServicoFormatado}".\n\n4 fotos 3x4: *R$ 15,00*\n8 fotos 3x4: *R$ 20,00*\n\nA foto fica *pronta na hora*!\n\nLembramos que, caso seja para algum documento oficial, *NÃO* é recomendado o uso de camiseta branca`);
   }
 
   // Mapeia todas as intenções para as funções corretas
