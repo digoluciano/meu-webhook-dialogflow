@@ -40,16 +40,10 @@ app.post('/webhook', (req, res) => {
     agent.add(`${prefixo}O nosso horário de atendimento é ${horarioAtendimento}`);
   }
 
-  // --- CORREÇÃO APLICADA AQUI ---
   function faturasIniciar(agent) {
     const prefixo = 'RESPOSTA AUTOMÁTICA:\n\n';
     agent.add(prefixo + 'Claro! Para que eu possa encontrar as suas faturas, por favor, digite o seu CPF ou CNPJ.');
-    
-    // Adiciona o contexto para que o bot saiba que está à espera de um CPF
-    agent.context.set({
-        name: 'aguardando_cpf',
-        lifespan: 5 // O contexto fica ativo por 5 minutos
-    });
+    agent.context.set({ name: 'aguardando_cpf', lifespan: 5 });
   }
 
   async function faturasReceberCpf(agent) {
@@ -58,7 +52,8 @@ app.post('/webhook', (req, res) => {
     const cpfCnpjLimpo = rawInput.replace(/\D/g, '');
 
     if (cpfCnpjLimpo.length !== 11 && cpfCnpjLimpo.length !== 14) {
-      agent.add(prefixo + 'O CPF ou CNPJ parece inválido. Por favor, digite apenas os números, sem pontos ou traços.');
+      agent.add(prefixo + 'O CPF ou CNPJ parece inválido. Por favor, digite apenas os números.');
+      agent.context.set({ name: 'aguardando_cpf', lifespan: 5 }); // Mantém o contexto para nova tentativa
       return;
     }
     
@@ -76,11 +71,15 @@ app.post('/webhook', (req, res) => {
                 resposta += `${index + 1}. Vencimento: ${fatura.data_vencimento} - Valor: R$ ${fatura.valor}\n`;
             });
             resposta += '\nPor favor, digite o número da fatura que deseja receber.';
-
+            
+            // --- CORREÇÃO APLICADA AQUI ---
+            // Limpa o contexto antigo antes de criar o novo
+            agent.context.delete('aguardando_cpf');
+            
             agent.context.set({
                 name: 'aguardando_selecao_fatura',
                 lifespan: 5,
-                parameters: { cpf: cpfCnpjLimpo, faturasEncontradas: faturas }
+                parameters: { faturasEncontradas: faturas }
             });
             agent.add(prefixo + resposta);
         } else {
@@ -93,14 +92,14 @@ app.post('/webhook', (req, res) => {
   }
 
   async function faturasSelecionarNumero(agent) {
-    const numeroSelecionado = agent.parameters.number;
+    const numeroSelecionado = parseInt(agent.query, 10);
     const prefixo = 'RESPOSTA AUTOMÁTICA:\n\n';
     const contexto = agent.context.get('aguardando_selecao_fatura');
     const faturas = contexto.parameters.faturasEncontradas;
 
-    if (!faturas || numeroSelecionado < 1 || numeroSelecionado > faturas.length) {
+    if (!faturas || isNaN(numeroSelecionado) || numeroSelecionado < 1 || numeroSelecionado > faturas.length) {
         agent.add(prefixo + 'Número inválido. Por favor, digite um dos números da lista.');
-        agent.context.set(contexto);
+        agent.context.set(contexto); // Mantém o contexto para nova tentativa
         return;
     }
 
@@ -173,15 +172,12 @@ app.post('/webhook', (req, res) => {
   // Mapeia todas as intenções para as funções corretas
   let intentMap = new Map();
   
-  // --- LIGAÇÕES PARA O MENU E SUB-MENU ---
   intentMap.set('menu.faturas', faturasIniciar);
   intentMap.set('menu.precos', produtosConsultarPreco);
   intentMap.set('menu.horario', agendamentoRetirada);
   intentMap.set('servicos.impressao', servicosDocumentos);
   intentMap.set('servicos.fotocopia', servicosDocumentos);
   intentMap.set('servicos.digitalizacao', servicosDocumentos);
-
-  // --- LIGAÇÕES PARA OS FLUXOS DE CONVERSA ---
   intentMap.set('faturas.receber_cpf', faturasReceberCpf);
   intentMap.set('faturas.selecionar_numero', faturasSelecionarNumero);
   
@@ -198,4 +194,3 @@ const port = process.env.PORT || 3000;
 app.listen(port, () => {
   console.log(`Webhook rodando na porta ${port}`);
 });
-
