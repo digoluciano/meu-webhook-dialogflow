@@ -166,8 +166,7 @@ app.post('/webhook', (req, res) => {
     const nomeServicoFormatado = servicoMap[servicoRef] || servicoRef;
     const prefixo = '*RESPOSTA AUTOMÁTICA*:\n\n';
     
-    agent.add(`${prefixo}Sim, nós oferecemos o serviço de "${nomeServicoFormatado}".\n\nValores das impressões monocromáticas\n\nPrimeira página - *R$ 1,50*\n2 a 100 páginas - *R$ 0,50* - Frente e verso *R$ 0,45*\n
-    101 a 300 páginas - *R$ 0,40* - Frente e verso *R$ 0,35*\nAcima de 300 páginas - *R$ 0,30* - Frente e verso *R$ 0,25*\n\nValor da impressão colorida: *R$ 2,50*`);
+    agent.add(`${prefixo}Sim, nós oferecemos o serviço de "${nomeServicoFormatado}".\n\nValores das impressões monocromáticas\n\nPrimeira página - *R$ 1,50*\n2 a 100 páginas - *R$ 0,50* - Frente e verso *R$ 0,45*\n101 a 300 páginas - *R$ 0,40* - Frente e verso *R$ 0,35*\nAcima de 300 páginas - *R$ 0,30* - Frente e verso *R$ 0,25*\n\nValor da impressão colorida: *R$ 2,50*`);
   }
 
   function servicosDocumentos(agent) {
