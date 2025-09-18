@@ -37,12 +37,19 @@ app.post('/webhook', (req, res) => {
   function agendamentoRetirada(agent) {
     const horarioAtendimento = 'de Segunda a Sexta, das 8h às 12h e das 13h às 18h, e aos Sábados das 8h às 12h';
     const prefixo = 'RESPOSTA AUTOMÁTICA:\n\n';
-    agent.add(`${prefixo}Nosso horário de atendimento é ${horarioAtendimento}`);
+    agent.add(`${prefixo}O nosso horário de atendimento é ${horarioAtendimento}`);
   }
 
+  // --- CORREÇÃO APLICADA AQUI ---
   function faturasIniciar(agent) {
     const prefixo = 'RESPOSTA AUTOMÁTICA:\n\n';
     agent.add(prefixo + 'Claro! Para que eu possa encontrar as suas faturas, por favor, digite o seu CPF ou CNPJ.');
+    
+    // Adiciona o contexto para que o bot saiba que está à espera de um CPF
+    agent.context.set({
+        name: 'aguardando_cpf',
+        lifespan: 5 // O contexto fica ativo por 5 minutos
+    });
   }
 
   async function faturasReceberCpf(agent) {
@@ -129,13 +136,13 @@ app.post('/webhook', (req, res) => {
     
     if (tamanhoFoto) { termoParaApi = tamanhoFoto; } 
     else if (userQuery.includes('revelação') || userQuery.includes('revelacao')) { termoParaApi = 'revelacao'; }
-    else if (userQuery.includes('foto') || userQuery.includes('fotos')) {
-        agent.add(prefixo + 'Claro! Temos vários tamanhos de foto. Qual tamanho você gostaria de saber o preço? (ex: 10x15, 15x21)');
+    else if (userQuery.includes('preço') || userQuery.includes('valor')) {
+        agent.add(prefixo + 'Claro! Sobre qual produto ou serviço gostaria de saber o preço?');
         return;
     } else { termoParaApi = agent.query; }
 
     try {
-        const response = await axios.post(`${apiConfig.baseUrl}faturas/api_produtos.php`, 
+        const response = await axios.post(`${apiConfig.baseUrl}produtos/api_produtos.php`, 
             { termo_busca: termoParaApi },
             { headers: { 'X-API-Key': apiConfig.apiKey } }
         );
