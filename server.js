@@ -160,13 +160,30 @@ app.post('/webhook', (req, res) => {
         agent.add(prefixo + 'Ocorreu um erro ao consultar os preços.');
     }
   }
-  
+
+  function servicosImpressao(agent) {
+    const servicoRef = agent.parameters.TipoDeServicoDocumento;
+    const nomeServicoFormatado = servicoMap[servicoRef] || servicoRef;
+    const prefixo = '*RESPOSTA AUTOMÁTICA*:\n\n';
+    
+    agent.add(`${prefixo}Sim, nós oferecemos o serviço de "${nomeServicoFormatado}".\n\nValores das impressões monocromáticas\n\nPrimeira página - *R$ 1,50*\n2 a 100 páginas - *R$ 0,50* - Frente e verso *R$ 0,45*\n
+    101 a 300 páginas - *R$ 0,40* - Frente e verso *R$ 0,35*\nAcima de 300 páginas - *R$ 0,30* - Frente e verso *R$ 0,25*\n\nValor da impressão colorida: *R$ 2,50*`);
+  }
+
   function servicosDocumentos(agent) {
     const servicoRef = agent.parameters.TipoDeServicoDocumento;
     const nomeServicoFormatado = servicoMap[servicoRef] || servicoRef;
     const prefixo = '*RESPOSTA AUTOMÁTICA*:\n\n';
     
     agent.add(`${prefixo}Sim, nós oferecemos o serviço de "${nomeServicoFormatado}". Para valores e prazos, por favor, envie mensagem para o número 48 99992-0920.`);
+  }
+  
+  function servicosFoto3x4(agent) {
+    const servicoRef = agent.parameters.TipoDeServicoDocumento;
+    const nomeServicoFormatado = servicoMap[servicoRef] || servicoRef;
+    const prefixo = '*RESPOSTA AUTOMÁTICA*:\n\n';
+    
+    agent.add(`${prefixo}Sim, nós oferecemos o serviço de "${nomeServicoFormatado}".\n\nValores:\n4 fotos 3x4: *R$ 15,00*\n8 fotos 3x4: *R$ 20,00*\n\nA foto fica pronta na hora!\n\nLembramos que, caso seja para algum documento oficial, NÃO é recomendado o uso de camiseta branca`);
   }
 
   // Mapeia todas as intenções para as funções corretas
@@ -175,9 +192,11 @@ app.post('/webhook', (req, res) => {
   intentMap.set('menu.faturas', faturasIniciar);
   intentMap.set('menu.precos', produtosConsultarPreco);
   intentMap.set('menu.horario', agendamentoRetirada);
-  intentMap.set('servicos.impressao', servicosDocumentos);
+  intentMap.set('servicos.impressao', servicosImpressao);
   intentMap.set('servicos.fotocopia', servicosDocumentos);
   intentMap.set('servicos.digitalizacao', servicosDocumentos);
+  intentMap.set('servicos.pastificacao', servicosDocumentos);
+  intentMap.set('servicos.foto3x4', servicosFoto3x4);
   intentMap.set('faturas.receber_cpf', faturasReceberCpf);
   intentMap.set('faturas.selecionar_numero', faturasSelecionarNumero);
   
