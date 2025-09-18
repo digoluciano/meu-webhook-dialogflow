@@ -46,7 +46,6 @@ app.post('/webhook', (req, res) => {
   }
 
   async function faturasReceberCpf(agent) {
-    // ... (Esta função mantém-se igual)
     const rawInput = agent.query;
     const prefixo = 'RESPOSTA AUTOMÁTICA:\n\n';
     const cpfCnpjLimpo = rawInput.replace(/\D/g, '');
@@ -87,7 +86,6 @@ app.post('/webhook', (req, res) => {
   }
 
   async function faturasSelecionarNumero(agent) {
-    // ... (Esta função mantém-se igual)
     const numeroSelecionado = agent.parameters.number;
     const prefixo = 'RESPOSTA AUTOMÁTICA:\n\n';
     const contexto = agent.context.get('aguardando_selecao_fatura');
@@ -123,7 +121,6 @@ app.post('/webhook', (req, res) => {
   }
 
   async function produtosConsultarPreco(agent) {
-    // ... (Esta função mantém-se igual)
     const prefixo = 'RESPOSTA AUTOMÁTICA:\n\n';
     const tamanhoFoto = agent.parameters.TamanhoFoto;
     const userQuery = agent.query.toLowerCase();
@@ -138,7 +135,7 @@ app.post('/webhook', (req, res) => {
     } else { termoParaApi = agent.query; }
 
     try {
-        const response = await axios.post(`${apiConfig.baseUrl}produtos/api_produtos.php`, 
+        const response = await axios.post(`${apiConfig.baseUrl}faturas/api_produtos.php`, 
             { termo_busca: termoParaApi },
             { headers: { 'X-API-Key': apiConfig.apiKey } }
         );
@@ -163,29 +160,24 @@ app.post('/webhook', (req, res) => {
     const nomeServicoFormatado = servicoMap[servicoRef] || servicoRef;
     const prefixo = 'RESPOSTA AUTOMÁTICA:\n\n';
     
-    // Resposta genérica para todos os serviços, como definido no seu pedido
     agent.add(`${prefixo}Sim, nós oferecemos o serviço de "${nomeServicoFormatado}". Para valores e prazos, por favor, envie mensagem para o número 48 99992-0920.`);
   }
 
   // Mapeia todas as intenções para as funções corretas
   let intentMap = new Map();
-  // Intents do Menu Principal
+  
+  // --- LIGAÇÕES PARA O MENU E SUB-MENU ---
   intentMap.set('menu.faturas', faturasIniciar);
   intentMap.set('menu.precos', produtosConsultarPreco);
   intentMap.set('menu.horario', agendamentoRetirada);
-  // A 'menu.servicos' agora é tratada no Dialogflow, não aqui.
-
-  // Intents do Fluxo de Faturas
-  intentMap.set('faturas.receber_cpf', faturasReceberCpf);
-  intentMap.set('faturas.selecionar_numero', faturasSelecionarNumero);
-  
-  // **NOVAS LIGAÇÕES PARA O SUB-MENU**
-  // Todas estas intents chamam a mesma função, pois o Dialogflow
-  // já nos diz qual é o serviço através do parâmetro.
   intentMap.set('servicos.impressao', servicosDocumentos);
   intentMap.set('servicos.fotocopia', servicosDocumentos);
   intentMap.set('servicos.digitalizacao', servicosDocumentos);
 
+  // --- LIGAÇÕES PARA OS FLUXOS DE CONVERSA ---
+  intentMap.set('faturas.receber_cpf', faturasReceberCpf);
+  intentMap.set('faturas.selecionar_numero', faturasSelecionarNumero);
+  
   agent.handleRequest(intentMap);
 });
 
